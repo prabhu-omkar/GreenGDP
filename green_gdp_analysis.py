@@ -128,6 +128,40 @@ def main():
     print(f"  NNCC Multiplier (10yr):  {c.iloc[-1]['NNCC'] / c.iloc[0]['NNCC']:.2f}x")
 
     # ═══════════════════════════════════════════════════════════
+    # SECTION 3: DECOUPLING / ELASTICITY ANALYSIS
+    # ═══════════════════════════════════════════════════════════
+    c['GDP_Growth'] = c['GDP'].pct_change()
+    c['CO2_Growth'] = c['CO2_DMG'].pct_change()
+    c['EnvDeg_Growth'] = c['Env_Deg'].pct_change()
+    c['NNCC_Growth'] = c['NNCC'].pct_change()
+    c['Res_Growth'] = c['Res_Depl'].pct_change()
+    c['PED_Growth'] = c['PED'].pct_change()
+
+    c['CO2_Elasticity'] = c['CO2_Growth'] / c['GDP_Growth']
+    c['EnvDeg_Elasticity'] = c['EnvDeg_Growth'] / c['GDP_Growth']
+    c['NNCC_Elasticity'] = c['NNCC_Growth'] / c['GDP_Growth']
+
+    avg_co2_e = c['CO2_Elasticity'].dropna().mean()
+    avg_env_e = c['EnvDeg_Elasticity'].dropna().mean()
+    avg_nncc_e = c['NNCC_Elasticity'].dropna().mean()
+
+    print(f"\n  -- Decoupling Analysis (Elasticity) --")
+    print(f"  CO2 Damage / GDP Elasticity:    {avg_co2_e:.3f}")
+    print(f"  Env Degradation / GDP Elasticity: {avg_env_e:.3f}")
+    print(f"  NNCC / GDP Elasticity:           {avg_nncc_e:.3f}")
+
+    for label, val in [("CO2", avg_co2_e), ("Env Degradation", avg_env_e), ("NNCC", avg_nncc_e)]:
+        if val < 0:
+            status = "ABSOLUTE DECOUPLING"
+        elif val < 0.8:
+            status = "STRONG RELATIVE DECOUPLING"
+        elif val < 1.0:
+            status = "WEAK RELATIVE DECOUPLING"
+        else:
+            status = "NO DECOUPLING (coupled growth)"
+        print(f"    {label}: {status}")
+
+    # ═══════════════════════════════════════════════════════════
 
 if __name__ == '__main__':
     main()
