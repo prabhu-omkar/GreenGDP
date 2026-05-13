@@ -162,6 +162,35 @@ def main():
         print(f"    {label}: {status}")
 
     # ═══════════════════════════════════════════════════════════
+    # SECTION 4: POLYNOMIAL FORECASTING TO 2030
+    # ═══════════════════════════════════════════════════════════
+    X = c['Year'].values
+    y_gdp = c['GDP'].values
+    y_green = c['Green_GDP'].values
+    y_nncc = c['NNCC'].values
+    y_co2 = c['CO2_DMG'].values
+    y_res = c['Res_Depl'].values
+
+    p_gdp = np.polyfit(X, y_gdp, 2)
+    p_green = np.polyfit(X, y_green, 2)
+    p_nncc = np.polyfit(X, y_nncc, 2)
+    p_co2 = np.polyfit(X, y_co2, 2)
+
+    years_all = np.array(range(2008, 2031))
+    pred_gdp = np.polyval(p_gdp, years_all)
+    pred_green = np.polyval(p_green, years_all)
+    pred_nncc = np.polyval(p_nncc, years_all)
+    pred_co2 = np.polyval(p_co2, years_all)
+
+    print(f"\n  -- Polynomial Forecast (Degree 2) to 2030 --")
+    print(f"  {'Year':<6} {'Proj GDP':>14} {'Proj Green GDP':>16} {'Proj NNCC':>14} {'Proj Gap%':>10}")
+    print(f"  {'-'*62}")
+    for i, yr in enumerate(years_all):
+        gap = ((pred_gdp[i] - pred_green[i]) / pred_gdp[i] * 100) if pred_gdp[i] > 0 else 0
+        marker = " *" if yr > 2018 else ""
+        print(f"  {yr:<6} ${pred_gdp[i]/1e9:>12.2f}B ${pred_green[i]/1e9:>14.2f}B ${pred_nncc[i]/1e9:>12.2f}B {gap:>8.2f}%{marker}")
+
+    # ═══════════════════════════════════════════════════════════
 
 if __name__ == '__main__':
     main()
