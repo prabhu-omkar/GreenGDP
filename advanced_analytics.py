@@ -73,6 +73,41 @@ def main():
     # Calculate elasticity
     c['Decoupling_Elasticity'] = c['CO2_Growth'] / c['GDP_Growth']
     
+    avg_elasticity = c['Decoupling_Elasticity'].mean()
+    print(f"\nAverage CO2/GDP Elasticity (2009-2018): {avg_elasticity:.2f}")
+    if avg_elasticity < 1 and avg_elasticity > 0:
+        print("Finding: Relative Decoupling is occurring. Emissions are growing slower than GDP.")
+    elif avg_elasticity < 0:
+        print("Finding: Absolute Decoupling is occurring. Emissions are falling while GDP grows.")
+    else:
+        print("Finding: No Decoupling. Emissions are growing faster than or equal to GDP.")
+
+    # 2. Correlation Matrix
+    corr_vars = c[['GDP', 'Green_GDP', 'Res_Depl', 'CO2_DMG', 'PED', 'Env_Deg']]
+    corr_matrix = corr_vars.corr()
+    
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1, fmt=".2f")
+    plt.title('Correlation Matrix of Economic & Environmental Indicators (Bangladesh)', fontsize=14)
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, 'bangladesh_correlation_matrix.png'), dpi=150)
+    plt.close()
+    print("Saved correlation matrix plot.")
+
+    # 3. Future Forecasting (Polynomial Regression Degree 2)
+    # We will forecast next 5 years (2019-2023)
+    X = c['Year'].values
+    y_gdp = c['GDP'].values
+    y_green = c['Green_GDP'].values
+    y_env = c['Env_Deg'].values
+    
+    # Fit degree 2 polynomial
+    p_gdp = np.polyfit(X, y_gdp, 2)
+    p_green = np.polyfit(X, y_green, 2)
+    p_env = np.polyfit(X, y_env, 2)
+    
+    years_future = np.array(range(2008, 2024))
+    pred_gdp = np.polyval(p_gdp, years_future)
 
 if __name__ == '__main__':
     main()
