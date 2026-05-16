@@ -108,6 +108,32 @@ def main():
     
     years_future = np.array(range(2008, 2024))
     pred_gdp = np.polyval(p_gdp, years_future)
+    pred_green = np.polyval(p_green, years_future)
+    pred_env = np.polyval(p_env, years_future)
+    
+    plt.figure(figsize=(12, 6))
+    plt.plot(X, y_gdp / 1e9, 'o', color='blue', label='Actual GDP')
+    plt.plot(years_future, pred_gdp / 1e9, '--', color='blue', alpha=0.5, label='Forecast GDP')
+    
+    plt.plot(X, y_green / 1e9, 's', color='green', label='Actual Green GDP')
+    plt.plot(years_future, pred_green / 1e9, '--', color='green', alpha=0.5, label='Forecast Green GDP')
+    
+    plt.axvline(x=2018, color='gray', linestyle=':', label='Forecast Start')
+    plt.title('Polynomial Forecast: GDP vs Green GDP (Bangladesh 2008-2023)', fontsize=14)
+    plt.xlabel('Year')
+    plt.ylabel('Billion USD')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, 'bangladesh_forecast.png'), dpi=150)
+    plt.close()
+    print("Saved forecast plot.")
 
-if __name__ == '__main__':
+    print("\nForecasted Values for 2023:")
+    print(f"Projected GDP (2023): ${pred_gdp[-1]/1e9:.2f} B")
+    print(f"Projected Green GDP (2023): ${pred_green[-1]/1e9:.2f} B")
+    print(f"Projected Gap % (2023): {((pred_gdp[-1] - pred_green[-1]) / pred_gdp[-1] * 100):.2f}%")
+
+if __name__ == "__main__":
     main()
+      
