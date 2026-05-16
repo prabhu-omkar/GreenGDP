@@ -191,6 +191,170 @@ def main():
         print(f"  {yr:<6} ${pred_gdp[i]/1e9:>12.2f}B ${pred_green[i]/1e9:>14.2f}B ${pred_nncc[i]/1e9:>12.2f}B {gap:>8.2f}%{marker}")
 
     # ═══════════════════════════════════════════════════════════
+    # SECTION 5: CHARTS (9 total)
+    # ═══════════════════════════════════════════════════════════
+    plt.style.use("seaborn-v0_8-darkgrid")
+    B = 1e9
 
-if __name__ == '__main__':
+    # ── Chart 1: GDP vs Green GDP ──
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(c["Year"], c["GDP"]/B, "o-", lw=2.5, color="#2196F3", ms=8, label="Standard GDP")
+    ax.plot(c["Year"], c["Green_GDP"]/B, "s-", lw=2.5, color="#4CAF50", ms=8, label="Green GDP")
+    ax.fill_between(c["Year"], c["Green_GDP"]/B, c["GDP"]/B, alpha=0.15, color="#F44336", label="Environmental Cost (NNCC)")
+    ax.set_xlabel("Year", fontsize=12); ax.set_ylabel("Billion USD", fontsize=12)
+    ax.set_title(f"{name}: Standard GDP vs Green GDP (2008-2018)", fontsize=15, fontweight="bold")
+    ax.legend(fontsize=11); ax.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+    plt.tight_layout(); plt.savefig(os.path.join(OUTPUT_DIR, f"{tag}_gdp_vs_green.png"), dpi=150); plt.close()
+    print(f"\n  [1/9] Saved: {tag}_gdp_vs_green.png")
+
+    # ── Chart 2: Stacked bar NNCC breakdown ──
+    fig, ax = plt.subplots(figsize=(12, 6))
+    w = 0.6
+    ax.bar(c["Year"], c["Res_Depl"]/B, w, label="Resource Depletion (NRD)", color="#FF9800")
+    ax.bar(c["Year"], c["CO2_DMG"]/B, w, bottom=c["Res_Depl"]/B, label="CO₂ Damage", color="#F44336")
+    ax.bar(c["Year"], c["PED"]/B, w, bottom=(c["Res_Depl"]+c["CO2_DMG"])/B, label="Particulate Emission Damage", color="#9C27B0")
+    ax.set_xlabel("Year", fontsize=12); ax.set_ylabel("Billion USD", fontsize=12)
+    ax.set_title(f"{name}: Net Natural Capital Consumption Breakdown (2008-2018)", fontsize=15, fontweight="bold")
+    ax.legend(fontsize=11); ax.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+    plt.tight_layout(); plt.savefig(os.path.join(OUTPUT_DIR, f"{tag}_nncc_breakdown.png"), dpi=150); plt.close()
+    print(f"  [2/9] Saved: {tag}_nncc_breakdown.png")
+
+    # ── Chart 3: Green GDP Gap trend ──
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.plot(c["Year"], c["Gap_Pct"], "D-", lw=2.5, color="#E91E63", ms=9)
+    ax.fill_between(c["Year"], c["Gap_Pct"], alpha=0.2, color="#E91E63")
+    for _, r in c.iterrows():
+        ax.annotate(f"{r['Gap_Pct']:.2f}%", (r['Year'], r['Gap_Pct']),
+                     textcoords="offset points", xytext=(0,12), ha='center', fontsize=9, fontweight='bold')
+    ax.set_xlabel("Year", fontsize=12); ax.set_ylabel("Green GDP Gap (%)", fontsize=12)
+    ax.set_title(f"{name}: Green GDP Gap Trend (2008-2018)", fontsize=15, fontweight="bold")
+    ax.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+    plt.tight_layout(); plt.savefig(os.path.join(OUTPUT_DIR, f"{tag}_gap_trend.png"), dpi=150); plt.close()
+    print(f"  [3/9] Saved: {tag}_gap_trend.png")
+
+    # ── Chart 4: Pie — average cost breakdown ──
+    ar, ac, ap = c["Res_Depl"].mean()/B, c["CO2_DMG"].mean()/B, c["PED"].mean()/B
+    total = ar + ac + ap
+    fig, ax = plt.subplots(figsize=(8, 8))
+    sizes = [ar, ac, ap]
+    labels = [f"Resource Depletion\n${ar:.1f}B ({ar/total*100:.1f}%)",
+              f"CO₂ Damage\n${ac:.1f}B ({ac/total*100:.1f}%)",
+              f"Particulate Emissions\n${ap:.1f}B ({ap/total*100:.1f}%)"]
+    ax.pie(sizes, labels=labels, colors=["#FF9800","#F44336","#9C27B0"],
+           explode=(0.05,0.05,0.05), startangle=140, textprops={"fontsize":11})
+    ax.set_title(f"{name}: Avg Environmental Cost Breakdown (2008-2018)", fontsize=15, fontweight="bold", pad=20)
+    plt.tight_layout(); plt.savefig(os.path.join(OUTPUT_DIR, f"{tag}_pie.png"), dpi=150); plt.close()
+    print(f"  [4/9] Saved: {tag}_pie.png")
+
+    # ── Chart 5: Sustainability index bars ──
+    fig, ax = plt.subplots(figsize=(12, 5))
+    cols = ["#4CAF50" if s > 0.97 else "#FF9800" if s > 0.93 else "#F44336" for s in c["Sust_Idx"]]
+    bars = ax.bar(c["Year"], c["Sust_Idx"], color=cols, width=0.6, edgecolor="white")
+    ax.axhline(y=1.0, color="gray", ls="--", alpha=0.5, label="Perfect Score (1.0)")
+    for bar, val in zip(bars, c["Sust_Idx"]):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001,
+                f"{val:.4f}", ha='center', fontsize=8, fontweight='bold')
+    ax.set_xlabel("Year", fontsize=12); ax.set_ylabel("Sustainability Index", fontsize=12)
+    ax.set_title(f"{name}: Sustainability Index (Green GDP / GDP) (2008-2018)", fontsize=15, fontweight="bold")
+    ax.set_ylim(min(c["Sust_Idx"])*0.98, 1.01); ax.legend(fontsize=11)
+    ax.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+    plt.tight_layout(); plt.savefig(os.path.join(OUTPUT_DIR, f"{tag}_sustainability.png"), dpi=150); plt.close()
+    print(f"  [5/9] Saved: {tag}_sustainability.png")
+
+    # ── Chart 6: Developing nations comparison ──
+    compare = ["IND","CHN","BRA","ZAF","IDN","NGA","MEX","BGD","PAK","VNM"]
+    if code not in compare:
+        compare.append(code)
+    cmp = mg[mg["Country Code"].isin(compare)].dropna(subset=["Gap_Pct"])
+    if not cmp.empty:
+        avg = cmp.groupby("Country Name")["Gap_Pct"].mean().sort_values()
+        fig, ax = plt.subplots(figsize=(12, 6))
+        colors = ["#E91E63" if n == name else "#FF9800" if v > 5 else "#4CAF50" for n, v in avg.items()]
+        ax.barh(avg.index, avg.values, color=colors, edgecolor="white", height=0.6)
+        for i, (n2, v) in enumerate(avg.items()):
+            ax.text(v + 0.15, i, f"{v:.1f}%", va="center", fontsize=10, fontweight="bold")
+        ax.set_xlabel("Avg Green GDP Gap (%)", fontsize=12)
+        ax.set_title(f"Developing Nations Comparison (2008-2018) — {name} highlighted", fontsize=14, fontweight="bold")
+        plt.tight_layout(); plt.savefig(os.path.join(OUTPUT_DIR, f"{tag}_comparison.png"), dpi=150); plt.close()
+        print(f"  [6/9] Saved: {tag}_comparison.png")
+
+    # ── Chart 7: Correlation Matrix Heatmap ──
+    corr_vars = c[['GDP', 'Green_GDP', 'Res_Depl', 'CO2_DMG', 'PED', 'Env_Deg', 'NNCC']]
+    corr_matrix = corr_vars.corr()
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1, fmt=".3f",
+                linewidths=0.5, ax=ax, square=True)
+    ax.set_title(f'{name}: Correlation Matrix of Economic & Environmental Indicators', fontsize=14, fontweight='bold')
+    plt.tight_layout(); plt.savefig(os.path.join(OUTPUT_DIR, f'{tag}_correlation_matrix.png'), dpi=150); plt.close()
+    print(f"  [7/9] Saved: {tag}_correlation_matrix.png")
+
+    # ── Chart 8: Decoupling Elasticity Over Time ──
+    ce = c.dropna(subset=['CO2_Elasticity'])
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(ce["Year"], ce["CO2_Elasticity"], color=["#F44336" if e >= 1 else "#4CAF50" for e in ce["CO2_Elasticity"]],
+           width=0.6, edgecolor="white", label="CO₂/GDP Elasticity")
+    ax.axhline(y=1.0, color="black", ls="--", lw=1.5, alpha=0.7, label="Coupling Threshold (1.0)")
+    ax.axhline(y=0, color="gray", ls="-", lw=0.5, alpha=0.3)
+    for _, r in ce.iterrows():
+        ax.text(r['Year'], r['CO2_Elasticity'] + 0.05, f"{r['CO2_Elasticity']:.2f}",
+                ha='center', fontsize=9, fontweight='bold')
+    ax.set_xlabel("Year", fontsize=12); ax.set_ylabel("Elasticity (CO₂ growth / GDP growth)", fontsize=12)
+    ax.set_title(f"{name}: CO₂ Damage Decoupling Elasticity (2009-2018)", fontsize=15, fontweight="bold")
+    ax.legend(fontsize=11); ax.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+    plt.tight_layout(); plt.savefig(os.path.join(OUTPUT_DIR, f'{tag}_decoupling.png'), dpi=150); plt.close()
+    print(f"  [8/9] Saved: {tag}_decoupling.png")
+
+    # ── Chart 9: Polynomial Forecast to 2030 ──
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10), gridspec_kw={'height_ratios': [2, 1]})
+
+    # Top: GDP vs Green GDP forecast
+    ax1.plot(X, y_gdp/B, 'o', color='#2196F3', ms=8, label='Actual GDP', zorder=5)
+    ax1.plot(years_all, pred_gdp/B, '--', color='#2196F3', alpha=0.6, lw=2, label='Forecast GDP')
+    ax1.plot(X, y_green/B, 's', color='#4CAF50', ms=8, label='Actual Green GDP', zorder=5)
+    ax1.plot(years_all, pred_green/B, '--', color='#4CAF50', alpha=0.6, lw=2, label='Forecast Green GDP')
+    ax1.fill_between(years_all, pred_green/B, pred_gdp/B, alpha=0.1, color='#F44336', label='Projected Gap')
+    ax1.axvline(x=2018.5, color='gray', linestyle=':', lw=2, label='Forecast Boundary')
+    ax1.set_ylabel("Billion USD", fontsize=12)
+    ax1.set_title(f"{name}: GDP & Green GDP Polynomial Forecast to 2030", fontsize=15, fontweight="bold")
+    ax1.legend(fontsize=10, loc='upper left'); ax1.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+    ax1.grid(True, alpha=0.3)
+
+    # Bottom: Projected Gap %
+    proj_gap = ((pred_gdp - pred_green) / pred_gdp * 100)
+    ax2.plot(years_all, proj_gap, 'D-', color='#E91E63', lw=2, ms=6)
+    ax2.fill_between(years_all, proj_gap, alpha=0.15, color='#E91E63')
+    ax2.axvline(x=2018.5, color='gray', linestyle=':', lw=2)
+    ax2.set_xlabel("Year", fontsize=12); ax2.set_ylabel("Projected Gap (%)", fontsize=12)
+    ax2.set_title(f"Projected Green GDP Gap (%) Through 2030", fontsize=13, fontweight="bold")
+    ax2.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+    ax2.grid(True, alpha=0.3)
+
+    plt.tight_layout(); plt.savefig(os.path.join(OUTPUT_DIR, f'{tag}_forecast_2030.png'), dpi=150); plt.close()
+    print(f"  [9/9] Saved: {tag}_forecast_2030.png")
+
+    # ═══════════════════════════════════════════════════════════
+    # SECTION 6: EXPORT DATA TO CSV
+    # ═══════════════════════════════════════════════════════════
+    export_cols = ['Year', 'GDP', 'GNI', 'NRD_PCT', 'CO2_DMG', 'PED',
+                   'Res_Depl', 'Env_Deg', 'NNCC', 'Green_GDP', 'Gap_Pct', 'Sust_Idx']
+    c[export_cols].to_csv(os.path.join(OUTPUT_DIR, f"{tag}_green_gdp_data.csv"), index=False)
+    print(f"\n  Exported: {tag}_green_gdp_data.csv")
+
+    # Export forecast
+    forecast_df = pd.DataFrame({
+        'Year': years_all,
+        'Projected_GDP': pred_gdp,
+        'Projected_Green_GDP': pred_green,
+        'Projected_NNCC': pred_nncc,
+        'Projected_Gap_Pct': proj_gap
+    })
+    forecast_df.to_csv(os.path.join(OUTPUT_DIR, f"{tag}_forecast_2030.csv"), index=False)
+    print(f"  Exported: {tag}_forecast_2030.csv")
+
+    print(f"\n{'='*100}")
+    print(f"  ALL OUTPUTS SAVED TO: {OUTPUT_DIR}")
+    print(f"{'='*100}")
+
+if __name__ == "__main__":
     main()
+        
